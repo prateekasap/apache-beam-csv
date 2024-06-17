@@ -1,5 +1,7 @@
 package org.example;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import org.apache.beam.runners.direct.DirectRunner;
@@ -21,9 +23,18 @@ import java.util.Properties;
 
 public class Main {
 
+
     public static void main(String[] args) {
 
         Properties confs = new Properties();
+        try (InputStream input = Main.class.getClassLoader().getResourceAsStream("aws.properties")) {
+            if (input == null) {
+                return;
+            }
+            confs.load(input);
+        } catch (IOException ex) {
+            return;
+        }
         // Create pipeline options
         AwsOptions options = PipelineOptionsFactory.create().as(AwsOptions.class);
 
@@ -34,8 +45,18 @@ public class Main {
         // Create the pipeline
         Pipeline pipeline = Pipeline.create(options);
 
-        String inputPath  = confs.getProperty("input.path");
-        String outputPath = confs.getProperty("output.path");
+        Properties paths = new Properties();
+        try (InputStream input = Main.class.getClassLoader().getResourceAsStream("paths.properties")) {
+            if (input == null) {
+                return;
+            }
+            paths.load(input);
+        } catch (IOException ex) {
+            return;
+        }
+
+        String inputPath  = paths.getProperty("input.path");
+        String outputPath = paths.getProperty("output.path");
 
 
         PCollection<FileIO.ReadableFile> files = pipeline.apply("MatchFiles", FileIO.match().filepattern(inputPath))
@@ -60,6 +81,14 @@ public class Main {
 
             try {
                 Properties confs = new Properties();
+                try (InputStream input = Main.class.getClassLoader().getResourceAsStream("aws.properties")) {
+                    if (input == null) {
+                        return;
+                    }
+                    confs.load(input);
+                } catch (IOException ex) {
+                    return;
+                }
                 String content = new String(file.readFullyAsBytes(), Charset.forName("Shift_JIS"));
                 String decodedContent = new String(content.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
 
